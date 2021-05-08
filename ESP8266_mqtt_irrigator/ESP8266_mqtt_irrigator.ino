@@ -1,5 +1,5 @@
 #include <ESP8266WiFi.h>
-#include <MQTT.h>
+#include "MQTT.h"
 #include <EEPROM.h>
 
 
@@ -9,8 +9,8 @@
 
 // O SSID é o nome da rede a que o vosso computador se vai conectar
 // A password é a da rede de internet a qual te estas a conectar
-#define AP_SSID     "xxx"
-#define AP_PASSWORD "xxx"
+#define AP_SSID     "NOS_Internet_B1D9"
+#define AP_PASSWORD "03217942"
 
 
 // Antes de se definir a palavra pass e o username é preciso criar conta em:
@@ -384,10 +384,16 @@ void loop() {
 */
 void loadConfig() {
   // Precisamos de verificar se a versão na memoria corresponde à nossa. É uma maneira fácil de verificar se esta foi corrompida ou não
+  bool flag = true;
+  for(int i = 0; i < sizeof(storage.version); i++){
+#if DEBUG
+    Serial.print("Loading Config: ");
+    Serial.println(i);
+#endif
+    if (EEPROM.read(CONFIG_START + i) != CONFIG_VERSION[i]) flag = false;
+  }
   // Se as versões não corresponderem vão ser usados os valores de default
-  if (EEPROM.read(CONFIG_START + 0) == CONFIG_VERSION[0] &&
-      EEPROM.read(CONFIG_START + 1) == CONFIG_VERSION[1] &&
-      EEPROM.read(CONFIG_START + 2) == CONFIG_VERSION[2])
+  if(flag==true)
     for (unsigned int t = 0; t < sizeof(storage); t++)
       *((char*)&storage + t) = EEPROM.read(CONFIG_START + t);
 }
