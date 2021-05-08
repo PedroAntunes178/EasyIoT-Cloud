@@ -1,5 +1,5 @@
 #include <ESP8266WiFi.h>
-#include "MQTT.h"
+#include <MQTT.h>
 #include <EEPROM.h>
 
 
@@ -177,45 +177,43 @@ void setup() {
 
     // Definir tipo de modulo
     Serial.println("Set module type");
-    myMqtt.SetModuleType(storage.moduleId, "ZMT_IRRIGATOR");
+    myMqtt.SetModuleType(storage.moduleId, "NEEC_IRRIGATOR");
 
-    // create Sensor.Parameter1 - humidity treshold value
+    // criar Sensor.Parameter1 - humidity treshold value
     Serial.println("new parameter: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY_TRESHOLD);
     myMqtt.NewModuleParameter(storage.moduleId, PARAM_HUMIDITY_TRESHOLD);
-    // set IsCommand
+    // Faz com que seja possivel alterar o valor a distacia
     Serial.println("set isCommand: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY_TRESHOLD);
     myMqtt.SetParameterIsCommand(storage.moduleId, PARAM_HUMIDITY_TRESHOLD, true);
 
 
-    // create Sensor.Parameter2
+    // criar Sensor.Parameter2
     // Sensor.Parameter2 - manual/auto mode 0 - manual, 1 - auto mode
     Serial.println("new parameter: /" + String(storage.moduleId) + "/" + PARAM_MANUAL_AUTO_MODE);
     myMqtt.NewModuleParameter(storage.moduleId, PARAM_MANUAL_AUTO_MODE);
-    // set IsCommand
     Serial.println("set isCommand: /" + String(storage.moduleId) + "/" + PARAM_MANUAL_AUTO_MODE);
     myMqtt.SetParameterIsCommand(storage.moduleId, PARAM_MANUAL_AUTO_MODE, true);
 
 
-    // create Sensor.Parameter3
+    // criar Sensor.Parameter3
     // Sensor.Parameter3 - pump on/ pump off
     Serial.println("new parameter: /" + String(storage.moduleId) + "/" + PARAM_PUMP_ON);
     myMqtt.NewModuleParameter(storage.moduleId, PARAM_PUMP_ON);
-    // set IsCommand
     Serial.println("set isCommand: /" + String(storage.moduleId) + "/" + PARAM_PUMP_ON);
     myMqtt.SetParameterIsCommand(storage.moduleId, PARAM_PUMP_ON, true);
 
 
-    // create Sensor.Parameter4
+    // criar Sensor.Parameter4
     // Sensor.Parameter4 - current soil humidity
     Serial.println("new parameter: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY);
     myMqtt.NewModuleParameter(storage.moduleId, PARAM_HUMIDITY);
-    // set Description
+    // Definir descripção
     Serial.println("set description: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY);
     myMqtt.SetParameterDescription(storage.moduleId, PARAM_HUMIDITY, "Soil moist.");
-    // set Unit
+    // Definir unidades
     Serial.println("set Unit: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY);
     myMqtt.SetParameterUnit(storage.moduleId, PARAM_HUMIDITY, "%");
-    // set dbLogging
+    // Definir escala logaritimica
     Serial.println("set Unit: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY);
     myMqtt.SetParameterDBLogging(storage.moduleId, PARAM_HUMIDITY, true);
 
@@ -223,12 +221,13 @@ void setup() {
     saveConfig();
   }
 
+  // É preciso subscrever aos topicos
   subscribe();
 
   // Lê o primeiro valor a partir do pin analogico
   lastAnalogReading = analogRead(PIN_HUM_ANALOG);
 
-  // Define o modo automatico antigo como o contrário do atual definido em cima
+  // Define o modo automatico antigo
   autoModeOld = !autoMode;
 }
 
