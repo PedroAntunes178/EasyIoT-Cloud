@@ -8,81 +8,81 @@
 
 
 // O SSID é o nome da rede a que o vosso computador se vai conectar
-// A password é a da rede de internet a qual te estas a conectar
+// A password é a da rede de internet a qual te estás a conectar
 #define AP_SSID     "xxx"
 #define AP_PASSWORD "xxx"
 
 
-// Antes de se definir a palavra pass e o username é preciso criar conta em:
+// Antes de se definir a password e o username é preciso criar conta em:
 // https://easyiot-cloud.com
 #define EIOTCLOUD_USERNAME "MDemonKing"
 #define EIOTCLOUD_PASSWORD "<(AB$[t~!_zt52@y"
 
 
 // MQTT é um protocolo de transmissão de mensagens para IoT (Internet of Things) da OASIS (Organization for the Advancement of Structured Information Standards)
-// O endereço que definimos aqui é onde ele vai buscar a informação
+// O endereço que definimos aqui é onde se vai buscar a informação
 #define EIOT_CLOUD_ADDRESS "cloud.iot-playground.com"
 
 
 
-#define PIN_PUMP         BUILTIN_LED //D0  // nodemcu built in LED
-#define PIN_BUTTON       D3  // nodemcu flash button
-#define PIN_HUM_ANALOG   A0  // Pin analógico da humidade
+#define PIN_PUMP         BUILTIN_LED //D0  // LED do nodeMCU
+#define PIN_BUTTON       D3  // Pino Flash do nodeMCU
+#define PIN_HUM_ANALOG   A0  // Pin0 analógico da humidade
 
-// Valores máximos e minimos que se vão ler no Pin analógico da humidade
+// Valores máximos e mínimos que se vão ler no pino analógico da humidade
 #define MAX_ANALOG_VAL         956
 #define MIN_ANALOG_VAL         250
 
-// Define o tempo que a bomba está a funcionar o tempo em que está parada
+// Define o tempo que a bomba está a funcionar e o tempo em que está parada
 #define IRRIGATION_TIME        10 // Tempo de irrigação em segundos
-#define IRRIGATION_PAUSE_TIME  300 // Tempo de pausa da irrigação em segundos - só é relevante no modo de automatico
+#define IRRIGATION_PAUSE_TIME  300 // Tempo de pausa da irrigação em segundos - só é relevante no modo de automático
 
 
-// Estado de funcionamento da bomba de aguá
+// Estado de funcionamento da bomba de água
 typedef enum {
-  s_idle             = 0,  // irrigation idle
-  s_irrigation_start = 1,  // start irrigation
-  s_irrigation       = 2,  // irrigate
-  s_irrigation_stop  = 3,  // irrigation stop
+  s_idle             = 0,  // Estado de inatividade
+  s_irrigation_start = 1,  // Começar irrigação
+  s_irrigation       = 2,  // Irrigação
+  s_irrigation_stop  = 3,  // Parar a irrigação
 } e_state;
 
 
-// Definir a partir de onde é que vamos guardar na EEPROM (memoria não volatile)
+// Definir a localização na EEPROM (memória não volátil) onde se vai armazenar o ficheiro de configuração
 #define CONFIG_START 0
 #define CONFIG_VERSION "NEECv01"
 
 // Estrutura dos dados que estão guardados na memoria
 struct StoreStruct {
-  // Este array de chars serve apenas para verificar se a versão está correcta
+  // Este array de caracteres serve apenas para verificar se a versão está correcta
   char version[8];
-  // Daqui para baixo definimos as variaveis que
-  uint moduleId;  // module id
+  //Aqui definem-se as variáveis  a guardar na EEPROM
+  uint moduleId;  // id do módulo
 } storage = {
   CONFIG_VERSION, // Guarda NEECv01
-  0, // Valor default do module 0
+  0, // Valor default do módulo 0
 };
 
 
-// Define os nomes dos parametros que se vão poder modificar a partir da cloud
+// Definem-se os nomes dos parâmetros que se vão poder modificar a partir da cloud
 #define PARAM_HUMIDITY_TRESHOLD   "Sensor.Parameter1"
 #define PARAM_MANUAL_AUTO_MODE    "Sensor.Parameter2"
 #define PARAM_PUMP_ON             "Sensor.Parameter3"
 #define PARAM_HUMIDITY            "Sensor.Parameter4"
 
 // Definir o tempo que esperamos pelas mensagens da cloud
-#define MS_IN_SEC  1000 // 1S  
+#define MS_IN_SEC  1000 // 1S
 
-// Criar o objecto de MQTT
+// Criar objecto de MQTT
 MQTT myMqtt("", EIOT_CLOUD_ADDRESS, 1883);
 
-// Variaveis globais
-int state; // Diz em que estado é que estamos
+// Variáveis globais
+int state; // Estado atual
 int soilHumidityThreshold; // Limiar da humidade do solo
-bool autoMode; // Define se o modo automatico está ligado ou não
-String valueStr(""); // Guarda o valor que é para enviar para a cloud
+bool autoMode; // Define se o modo automático está ligado ou não
+String valueStr(""); // Guarda o valor a enviar para a cloud
 String topic(""); // Guarda uma string relativamente ao topico a que nos queremos referir quando enviamos uma mensagem para a cloud
 boolean result; // Recebe o resultado da comunicação com a cloud
-int lastAnalogReading; // Ultimo valor analogico lido a partir do pin analogico
+int lastAnalogReading; // Último valor analógico lido a partir do pino da humidade
 bool autoModeOld; // Estado antigo do autoMode
 int soilHumidityThresholdOld; // Limiar da humidade do solo antigo
 unsigned long startTime; // Guarda um instante de tempo inicial
@@ -92,15 +92,15 @@ int irrigatorCounter; // Conta quantos segundos o nodeMCU está num determinado 
 
 // Esta função vai correr só uma vez quando se liga o nodeMCU à corrente
 void setup() {
-  state = s_idle; // começa no estado idle
-  // Defenir o modo de funcionamento dos pins do nodeMCU
+  state = s_idle; // Começar no estado idle
+  // Definir o modo de funcionamento dos pinos do nodeMCU
   pinMode(PIN_PUMP, OUTPUT);
   pinMode(PIN_BUTTON, INPUT);
 
-  autoMode = false; // inicializa com o modo automatico desligado
-  soilHumidityThresholdOld = -1; // inicializa com o valor de limiar da humidade do solo a -1
-  startTime = millis(); // Vai buscar o valor inicial do tempo, a millis() retorna o tempo decorrido desde que o nodeMCU foi ligado
-  soilHum = -1; // inicializa com o valor da humidade do solo a -1
+  autoMode = false; // Inicializa com o modo automático desligado
+  soilHumidityThresholdOld = -1; // Inicializa o limiar da humidade do solo a -1
+  startTime = millis(); // Vai buscar o valor inicial do tempo. millis() retorna o tempo decorrido desde que o nodeMCU foi ligado
+  soilHum = -1; // Inicializa o valor da humidade do solo a -1
 
   Serial.begin(115200); //Inicia a comunicação com uma largura de banda de 115200 bps (baud rate)
 
