@@ -10,16 +10,16 @@
 // O SSID é o nome da rede a que o vosso computador se vai conectar
 // A password é a da rede de internet a qual te estas a conectar
 #define AP_SSID     "xxx"
-#define AP_PASSWORD "xxx"  
+#define AP_PASSWORD "xxx"
 
 
 // Antes de se definir a palavra pass e o username é preciso criar conta em:
-// https://easyiot-cloud.com 
+// https://easyiot-cloud.com
 #define EIOTCLOUD_USERNAME "MDemonKing"
 #define EIOTCLOUD_PASSWORD "<(AB$[t~!_zt52@y"
 
 
-// MQTT is an OASIS (Organization for the Advancement of Structured Information Standards) standard messaging protocol for the Internet of Things (IoT). 
+// MQTT é um protocolo de transmissão de mensagens para IoT (Internet of Things) da OASIS (Organization for the Advancement of Structured Information Standards)
 // O endereço que definimos aqui é onde ele vai buscar a informação
 #define EIOT_CLOUD_ADDRESS "cloud.iot-playground.com"
 
@@ -29,13 +29,13 @@
 #define PIN_BUTTON       D3  // nodemcu flash button
 #define PIN_HUM_ANALOG   A0  // Pin analógico da humidade
 
-// Valores máximos e minimos que se vão ler no Pin analógico da humidade.
+// Valores máximos e minimos que se vão ler no Pin analógico da humidade
 #define MAX_ANALOG_VAL         956
 #define MIN_ANALOG_VAL         250
 
 // Define o tempo que a bomba está a funcionar o tempo em que está parada
-#define IRRIGATION_TIME        10 // irrigation time in sec
-#define IRRIGATION_PAUSE_TIME  300 // irrigation pause time in sec - only for auto irrigator
+#define IRRIGATION_TIME        10 // Tempo de irrigação em segundos
+#define IRRIGATION_PAUSE_TIME  300 // Tempo de pausa da irrigação em segundos - só é relevante no modo de automatico
 
 
 // Estado de funcionamento da bomba de aguá
@@ -47,18 +47,19 @@ typedef enum {
 } e_state;
 
 
-// Definir o que vai ser guardado na memoria de maneira a verificar se as configurações guardadas no nodeMCU são as nossas
+// Definir a partir de onde é que vamos guardar na EEPROM (memoria não volatile)
 #define CONFIG_START 0
-#define CONFIG_VERSION "vNE"
+#define CONFIG_VERSION "NEECv01"
 
+// Estrutura dos dados que estão guardados na memoria
 struct StoreStruct {
-  // This is for mere detection if they are your settings
-  char version[4];
-  // The variables of your settings
+  // Este array de chars serve apenas para verificar se a versão está correcta
+  char version[8];
+  // Daqui para baixo definimos as variaveis que
   uint moduleId;  // module id
 } storage = {
   CONFIG_VERSION, // Guarda NEECv01
-  0, // The default module 0
+  0, // Valor default do module 0
 };
 
 
@@ -76,7 +77,6 @@ MQTT myMqtt("", EIOT_CLOUD_ADDRESS, 1883);
 
 // Variaveis globais
 int state; // Diz em que estado é que estamos
-bool stepOk = false; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Não serve para nada ??????!!!!!!!!!!
 int soilHumidityThreshold; // Limiar da humidade do solo
 bool autoMode; // Define se o modo automatico está ligado ou não
 String valueStr(""); // Guarda o valor que é para enviar para a cloud
@@ -94,19 +94,18 @@ int irrigatorCounter; // Conta quantos segundos o nodeMCU está num determinado 
 void setup() {
   state = s_idle; // começa no estado idle
   // Defenir o modo de funcionamento dos pins do nodeMCU
-  pinMode(PIN_PUMP, OUTPUT); 
+  pinMode(PIN_PUMP, OUTPUT);
   pinMode(PIN_BUTTON, INPUT);
 
   autoMode = false; // inicializa com o modo automatico desligado
-  stepOk = false; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Não serve para nada ??????!!!!!!!!!!
   soilHumidityThresholdOld = -1; // inicializa com o valor de limiar da humidade do solo a -1
   startTime = millis(); // Vai buscar o valor inicial do tempo, a millis() retorna o tempo decorrido desde que o nodeMCU foi ligado
   soilHum = -1; // inicializa com o valor da humidade do solo a -1
-  
+
   Serial.begin(115200); //Inicia a comunicação com uma largura de banda de 115200 bps (baud rate)
 
   // Conecta a rede Wifi
-  WiFi.mode(WIFI_STA);  
+  WiFi.mode(WIFI_STA);
   WiFi.begin(AP_SSID, AP_PASSWORD);
 
   // Os print que se seguem servem para verificar se o nodeMCU está conectado à rede
@@ -114,14 +113,14 @@ void setup() {
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(AP_SSID);
-    
+
   while (WiFi.status() != WL_CONNECTED) { // Espera até estar conectado
     delay(500);
     Serial.print(".");
   };
 
   Serial.println("WiFi connected");
-  Serial.println("Connecting to MQTT server");  
+  Serial.println("Connecting to MQTT server");
   // Acaba aqui
 
   // Inicia a comunicação com a EEPROM (memoria não volátil)
@@ -152,7 +151,7 @@ void setup() {
   myMqtt.onData(myDataCb);
 
   // Conectar à cloud por MQTT
-  myMqtt.setUserPwd(EIOTCLOUD_USERNAME, EIOTCLOUD_PASSWORD);  
+  myMqtt.setUserPwd(EIOTCLOUD_USERNAME, EIOTCLOUD_PASSWORD);
   myMqtt.connect();
 
   delay(500); // para por 0.5 sec
@@ -172,54 +171,54 @@ void setup() {
     if (storage.moduleId == 0)
     {
       Serial.println("Module NOT created. Check module limit");
-      while(1)
+      while (1)
         delay(100);
     }
 
     // Definir tipo de modulo
-    Serial.println("Set module type");    
+    Serial.println("Set module type");
     myMqtt.SetModuleType(storage.moduleId, "ZMT_IRRIGATOR");
-    
+
     // create Sensor.Parameter1 - humidity treshold value
-    Serial.println("new parameter: /"+String(storage.moduleId)+ "/" +PARAM_HUMIDITY_TRESHOLD);    
+    Serial.println("new parameter: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY_TRESHOLD);
     myMqtt.NewModuleParameter(storage.moduleId, PARAM_HUMIDITY_TRESHOLD);
     // set IsCommand
-    Serial.println("set isCommand: /"+String(storage.moduleId)+ "/" + PARAM_HUMIDITY_TRESHOLD);    
+    Serial.println("set isCommand: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY_TRESHOLD);
     myMqtt.SetParameterIsCommand(storage.moduleId, PARAM_HUMIDITY_TRESHOLD, true);
 
 
     // create Sensor.Parameter2
     // Sensor.Parameter2 - manual/auto mode 0 - manual, 1 - auto mode
-    Serial.println("new parameter: /"+String(storage.moduleId)+ "/" + PARAM_MANUAL_AUTO_MODE);    
+    Serial.println("new parameter: /" + String(storage.moduleId) + "/" + PARAM_MANUAL_AUTO_MODE);
     myMqtt.NewModuleParameter(storage.moduleId, PARAM_MANUAL_AUTO_MODE);
     // set IsCommand
-    Serial.println("set isCommand: /"+String(storage.moduleId)+ "/" + PARAM_MANUAL_AUTO_MODE);    
+    Serial.println("set isCommand: /" + String(storage.moduleId) + "/" + PARAM_MANUAL_AUTO_MODE);
     myMqtt.SetParameterIsCommand(storage.moduleId, PARAM_MANUAL_AUTO_MODE, true);
 
-    
+
     // create Sensor.Parameter3
     // Sensor.Parameter3 - pump on/ pump off
-    Serial.println("new parameter: /"+String(storage.moduleId)+ "/" + PARAM_PUMP_ON);    
+    Serial.println("new parameter: /" + String(storage.moduleId) + "/" + PARAM_PUMP_ON);
     myMqtt.NewModuleParameter(storage.moduleId, PARAM_PUMP_ON);
     // set IsCommand
-    Serial.println("set isCommand: /"+String(storage.moduleId)+ "/" + PARAM_PUMP_ON);    
+    Serial.println("set isCommand: /" + String(storage.moduleId) + "/" + PARAM_PUMP_ON);
     myMqtt.SetParameterIsCommand(storage.moduleId, PARAM_PUMP_ON, true);
 
 
     // create Sensor.Parameter4
     // Sensor.Parameter4 - current soil humidity
-    Serial.println("new parameter: /"+String(storage.moduleId)+ "/" + PARAM_HUMIDITY);    
+    Serial.println("new parameter: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY);
     myMqtt.NewModuleParameter(storage.moduleId, PARAM_HUMIDITY);
     // set Description
-    Serial.println("set description: /"+String(storage.moduleId)+ "/" + PARAM_HUMIDITY);    
+    Serial.println("set description: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY);
     myMqtt.SetParameterDescription(storage.moduleId, PARAM_HUMIDITY, "Soil moist.");
     // set Unit
-    Serial.println("set Unit: /"+String(storage.moduleId)+ "/" + PARAM_HUMIDITY);    
+    Serial.println("set Unit: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY);
     myMqtt.SetParameterUnit(storage.moduleId, PARAM_HUMIDITY, "%");
     // set dbLogging
-    Serial.println("set Unit: /"+String(storage.moduleId)+ "/" + PARAM_HUMIDITY);    
+    Serial.println("set Unit: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY);
     myMqtt.SetParameterDBLogging(storage.moduleId, PARAM_HUMIDITY, true);
-    
+
     // Guarda as novas configurações na EEPROM
     saveConfig();
   }
@@ -227,7 +226,7 @@ void setup() {
   subscribe();
 
   // Lê o primeiro valor a partir do pin analogico
-  lastAnalogReading = analogRead(PIN_HUM_ANALOG); 
+  lastAnalogReading = analogRead(PIN_HUM_ANALOG);
 
   // Define o modo automatico antigo como o contrário do atual definido em cima
   autoModeOld = !autoMode;
@@ -236,7 +235,7 @@ void setup() {
 void loop() {
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-#ifdef DEBUG        
+#ifdef DEBUG
     Serial.print(".");
 #endif
   }
@@ -246,7 +245,7 @@ void loop() {
   //Serial.println(in);
   if (in == 0)
   {
-    while(digitalRead(PIN_BUTTON) == 0)
+    while (digitalRead(PIN_BUTTON) == 0)
       delay(100);
 
     if (state == s_idle || state == s_irrigation_start)
@@ -254,7 +253,7 @@ void loop() {
     else
       state = s_irrigation_stop;
   }
-  
+
 
 
   // post auto mode changes
@@ -262,18 +261,18 @@ void loop() {
   {
     autoModeOld = autoMode;
 
-    if (autoMode)    
+    if (autoMode)
       valueStr = String("1");
     else
       valueStr = String("0");
-    
-    topic  = "/"+String(storage.moduleId)+ "/" + PARAM_MANUAL_AUTO_MODE;
+
+    topic  = "/" + String(storage.moduleId) + "/" + PARAM_MANUAL_AUTO_MODE;
     result = myMqtt.publish(topic, valueStr, 0, 1);
 
     Serial.print("Publish topic: ");
     Serial.print(topic);
     Serial.print(" value: ");
-    Serial.println(valueStr);  
+    Serial.println(valueStr);
   }
 
   // post treshold changes
@@ -281,16 +280,16 @@ void loop() {
   {
     soilHumidityThresholdOld = soilHumidityThreshold;
     valueStr = String(soilHumidityThreshold);
-    
-    topic  = "/"+String(storage.moduleId)+ "/"+ PARAM_HUMIDITY_TRESHOLD;
+
+    topic  = "/" + String(storage.moduleId) + "/" + PARAM_HUMIDITY_TRESHOLD;
     result = myMqtt.publish(topic, valueStr, 0, 1);
 
     Serial.print("Publish topic: ");
     Serial.print(topic);
     Serial.print(" value: ");
-    Serial.println(valueStr);  
+    Serial.println(valueStr);
   }
-  
+
   if (IsTimeout())
   {
     startTime = millis();
@@ -301,111 +300,111 @@ void loop() {
     Serial.print(aireading);
     Serial.print(" ");
     // filter s
-    lastAnalogReading += (aireading - lastAnalogReading) / 10;  
-    Serial.print(lastAnalogReading); 
-   
-   // calculate soil humidity in % 
-   int newSoilHum = map(lastAnalogReading, MIN_ANALOG_VAL, MAX_ANALOG_VAL, 100, 0);  
-   Serial.print(", Soil hum %:");
-   Serial.println(newSoilHum); 
-        
-   // limit to 0-100%
-   if (newSoilHum < 0)
+    lastAnalogReading += (aireading - lastAnalogReading) / 10;
+    Serial.print(lastAnalogReading);
+
+    // calculate soil humidity in %
+    int newSoilHum = map(lastAnalogReading, MIN_ANALOG_VAL, MAX_ANALOG_VAL, 100, 0);
+    Serial.print(", Soil hum %:");
+    Serial.println(newSoilHum);
+
+    // limit to 0-100%
+    if (newSoilHum < 0)
       newSoilHum = 0;
 
     if (newSoilHum > 100)
       newSoilHum = 100;
- 
-   // report soil humidity if changed
-   if (soilHum != newSoilHum)
-   {
-     soilHum = newSoilHum;
-     //esp.send(msgHum.set(soilHum)); 
-     
-     valueStr = String(soilHum);
-     topic  = "/"+String(storage.moduleId)+ "/" + PARAM_HUMIDITY;
-     result = myMqtt.publish(topic, valueStr, 0, 1);
 
-     Serial.print("Publish topic: ");
-     Serial.print(topic);
-     Serial.print(" value: ");
-     Serial.println(valueStr);  
-   }
-   
-   
-   // irrigator state machine
-   switch(state)
-   {
-     case s_idle:     
-       if (irrigatorCounter <= IRRIGATION_PAUSE_TIME)
-         irrigatorCounter++;
-       
-       if (irrigatorCounter >= IRRIGATION_PAUSE_TIME && autoMode)
-       {
-         if (soilHum <= soilHumidityThreshold)
-           state = s_irrigation_start;       
-       }         
-       break;
-     case s_irrigation_start:
-       irrigatorCounter = 0;
-       digitalWrite(PIN_PUMP, HIGH);
-       //esp.send(msgMotorPump.set((uint8_t)1));       
-       valueStr = String(1);
-       topic  = "/"+String(storage.moduleId)+ "/" + PARAM_PUMP_ON;
-       result = myMqtt.publish(topic, valueStr, 0, 1);    
+    // report soil humidity if changed
+    if (soilHum != newSoilHum)
+    {
+      soilHum = newSoilHum;
+      //esp.send(msgHum.set(soilHum));
 
-       Serial.print("Publish topic: ");
-       Serial.print(topic);
-       Serial.print(" value: ");
-       Serial.println(valueStr);  
- 
-       state = s_irrigation;
-       break;
-     case s_irrigation:
-       if (irrigatorCounter++ > IRRIGATION_TIME)
-         state = s_irrigation_stop;
-       break;
-     case s_irrigation_stop:
-       irrigatorCounter = 0;
-       state = s_idle;
-       //esp.send(msgMotorPump.set((uint8_t)0));
-       valueStr = String(0);
-       topic  = "/"+String(storage.moduleId)+ "/" + PARAM_PUMP_ON;
-       result = myMqtt.publish(topic, valueStr, 0, 1);    
+      valueStr = String(soilHum);
+      topic  = "/" + String(storage.moduleId) + "/" + PARAM_HUMIDITY;
+      result = myMqtt.publish(topic, valueStr, 0, 1);
 
-       digitalWrite(PIN_PUMP, LOW);
-       break;
-   }
+      Serial.print("Publish topic: ");
+      Serial.print(topic);
+      Serial.print(" value: ");
+      Serial.println(valueStr);
+    }
+
+
+    // irrigator state machine
+    switch (state)
+    {
+      case s_idle:
+        if (irrigatorCounter <= IRRIGATION_PAUSE_TIME)
+          irrigatorCounter++;
+
+        if (irrigatorCounter >= IRRIGATION_PAUSE_TIME && autoMode)
+        {
+          if (soilHum <= soilHumidityThreshold)
+            state = s_irrigation_start;
+        }
+        break;
+      case s_irrigation_start:
+        irrigatorCounter = 0;
+        digitalWrite(PIN_PUMP, HIGH);
+        //esp.send(msgMotorPump.set((uint8_t)1));
+        valueStr = String(1);
+        topic  = "/" + String(storage.moduleId) + "/" + PARAM_PUMP_ON;
+        result = myMqtt.publish(topic, valueStr, 0, 1);
+
+        Serial.print("Publish topic: ");
+        Serial.print(topic);
+        Serial.print(" value: ");
+        Serial.println(valueStr);
+
+        state = s_irrigation;
+        break;
+      case s_irrigation:
+        if (irrigatorCounter++ > IRRIGATION_TIME)
+          state = s_irrigation_stop;
+        break;
+      case s_irrigation_stop:
+        irrigatorCounter = 0;
+        state = s_idle;
+        //esp.send(msgMotorPump.set((uint8_t)0));
+        valueStr = String(0);
+        topic  = "/" + String(storage.moduleId) + "/" + PARAM_PUMP_ON;
+        result = myMqtt.publish(topic, valueStr, 0, 1);
+
+        digitalWrite(PIN_PUMP, LOW);
+        break;
+    }
   }
-  
+
 }
 
 /*
- * A função loadConfig vai carregar as configurações lá guardadas
- */
+   A função loadConfig vai carregar as configurações lá guardadas
+*/
 void loadConfig() {
   // Precisamos de verificar se a versão na memoria corresponde à nossa. É uma maneira fácil de verificar se esta foi corrompida ou não
   // Se as versões não corresponderem vão ser usados os valores de default
   if (EEPROM.read(CONFIG_START + 0) == CONFIG_VERSION[0] &&
       EEPROM.read(CONFIG_START + 1) == CONFIG_VERSION[1] &&
       EEPROM.read(CONFIG_START + 2) == CONFIG_VERSION[2])
-    for (unsigned int t=0; t<sizeof(storage); t++)
+    for (unsigned int t = 0; t < sizeof(storage); t++)
       *((char*)&storage + t) = EEPROM.read(CONFIG_START + t);
 }
 
 /*
- * A função saveConfig vai guardar as configurações na EEPROM
- */
+   A função saveConfig vai guardar as configurações na EEPROM
+*/
 void saveConfig() {
-  for (unsigned int t=0; t<sizeof(storage); t++)
+  for (unsigned int t = 0; t < sizeof(storage); t++)
     EEPROM.write(CONFIG_START + t, *((char*)&storage + t));
 
   EEPROM.commit();
 }
 
 /*
- * A função macToStr vai transformar o endereço mac numa string
- */
+   A função macToStr vai transformar o endereço mac numa string
+*/
 String macToStr(const uint8_t* mac)
 {
   String result; //explicar que as funções dão prioridade de nome as variaveis locais
@@ -417,30 +416,21 @@ String macToStr(const uint8_t* mac)
   return result;
 }
 
-/* Não serve para nada
-void waitOk()
-{
-  while(!stepOk)
-    delay(100);
- 
-  stepOk = false;
-}
-*/
 
 /*
- * A função IsTimeout vai verificar se já passou mais de 1 sec
- */
+   A função IsTimeout vai verificar se já passou mais de 1 sec
+*/
 boolean IsTimeout()
 {
   unsigned long now = millis();
   if (startTime <= now)
   {
-    if ( (unsigned long)(now - startTime )  < MS_IN_SEC ) 
+    if ( (unsigned long)(now - startTime )  < MS_IN_SEC )
       return false;
   }
   else
   {
-    if ( (unsigned long)(startTime - now) < MS_IN_SEC ) 
+    if ( (unsigned long)(startTime - now) < MS_IN_SEC )
       return false;
   }
 
@@ -449,26 +439,26 @@ boolean IsTimeout()
 
 
 /*
- * A função subscribe vai ...
- */
+   A função subscribe vai ...
+*/
 void subscribe()
 {
   if (storage.moduleId != 0)
   {
     // Sensor.Parameter1 - humidity treshold value
-    myMqtt.subscribe("/"+String(storage.moduleId)+ "/" + PARAM_HUMIDITY_TRESHOLD);
-  
+    myMqtt.subscribe("/" + String(storage.moduleId) + "/" + PARAM_HUMIDITY_TRESHOLD);
+
     // Sensor.Parameter2 - manual/auto mode 0 - manual, 1 - auto mode
-    myMqtt.subscribe("/"+String(storage.moduleId)+ "/" + PARAM_MANUAL_AUTO_MODE);
-  
+    myMqtt.subscribe("/" + String(storage.moduleId) + "/" + PARAM_MANUAL_AUTO_MODE);
+
     // Sensor.Parameter3 - pump on/ pump off
-    myMqtt.subscribe("/"+String(storage.moduleId)+ "/" + PARAM_PUMP_ON);
+    myMqtt.subscribe("/" + String(storage.moduleId) + "/" + PARAM_PUMP_ON);
   }
 }
 
 /*
- * A função myConnectedCb vai executar quando o nodeMCU establecer a conexão por MQTT à cloud
- */
+   A função myConnectedCb vai executar quando o nodeMCU establecer a conexão por MQTT à cloud
+*/
 void myConnectedCb() {
 #ifdef DEBUG
   Serial.println("Connected to MQTT server");
@@ -477,8 +467,8 @@ void myConnectedCb() {
 }
 
 /*
- * A função myDisconnectedCb vai executar quando o nodeMCU se deconectar da ligação por MQTT à cloud
- */
+   A função myDisconnectedCb vai executar quando o nodeMCU se deconectar da ligação por MQTT à cloud
+*/
 void myDisconnectedCb() {
 #ifdef DEBUG
   Serial.println("disconnected. try to reconnect...");
@@ -488,38 +478,38 @@ void myDisconnectedCb() {
 }
 
 /*
- * A função myPublishedCb vai executar quando o nodeMCU enviar algo para a cloud
- */
+   A função myPublishedCb vai executar quando o nodeMCU enviar algo para a cloud
+*/
 void myPublishedCb() {
-#ifdef DEBUG  
+#ifdef DEBUG
   Serial.println("published.");
 #endif
 }
 
 /*
- * A função myDataCb vai executar quando o nodeMCU receber dados pela conexão MQTT à cloud
- */
-void myDataCb(String& topic, String& data) {  
-#ifdef DEBUG  
+   A função myDataCb vai executar quando o nodeMCU receber dados pela conexão MQTT à cloud
+*/
+void myDataCb(String& topic, String& data) {
+#ifdef DEBUG
   Serial.print("Receive topic: ");
   Serial.print(topic);
   Serial.print(": ");
   Serial.println(data);
 #endif
-  if (topic == String("/"+String(storage.moduleId)+ "/" + PARAM_HUMIDITY_TRESHOLD)) // Executa se a mensagem que receber for relativa a uma variação da humidade limiar do solo
+  if (topic == String("/" + String(storage.moduleId) + "/" + PARAM_HUMIDITY_TRESHOLD)) // Executa se a mensagem que receber for relativa a uma variação da humidade limiar do solo
   {
     soilHumidityThreshold = data.toInt();
     Serial.println("soilHumidityThreshold");
     Serial.println(data);
   }
 
-  else if (topic == String("/"+String(storage.moduleId)+ "/" + PARAM_MANUAL_AUTO_MODE)) // Executa se a mensagem que receber for relativa a ligar ou desligar o modo automatico
+  else if (topic == String("/" + String(storage.moduleId) + "/" + PARAM_MANUAL_AUTO_MODE)) // Executa se a mensagem que receber for relativa a ligar ou desligar o modo automatico
   {
     autoMode = (data == String("1"));
     Serial.println("Auto mode");
     Serial.println(data);
   }
-  else if (topic == String("/"+String(storage.moduleId)+ "/" + PARAM_PUMP_ON)) // Executa se a mensagem que receber for relativa a ligar ou desligar a bomba de aguá
+  else if (topic == String("/" + String(storage.moduleId) + "/" + PARAM_PUMP_ON)) // Executa se a mensagem que receber for relativa a ligar ou desligar a bomba de aguá
   {
     if (data == String("1"))
       state = s_irrigation_start;
