@@ -104,11 +104,11 @@ void setup() {
 
   Serial.begin(115200); //Inicia a comunicação com uma largura de banda de 115200 bps (baud rate)
 
-  // Conecta a rede Wifi
+  // Conecta à rede Wifi
   WiFi.mode(WIFI_STA);
   WiFi.begin(AP_SSID, AP_PASSWORD);
 
-  // Os print que se seguem servem para verificar se o nodeMCU está conectado à rede
+  // Os prints que se seguem servem para verificar se o nodeMCU está conectado à rede
   Serial.println();
   Serial.println();
   Serial.print("Connecting to ");
@@ -123,14 +123,14 @@ void setup() {
   Serial.println("Connecting to MQTT server");
   // Acaba aqui
 
-  // Inicia a comunicação com a EEPROM (memoria não volátil)
+  // Inicia a comunicação com a EEPROM
   EEPROM.begin(512);
   // Carrega as configurações do utilizador
   loadConfig();
 
 
   // Define o id do client
-  // E gerar o nome do cliente baseando-se no endereço MAC e nos ultimos 8 bits do contador de microsegundos
+  // Gerar o nome do cliente baseando-se no endereço MAC e nos ultimos 8 bits do contador de microsegundos
   String clientName;
   uint8_t mac[6];
   WiFi.macAddress(mac); // Vai buscar o endereço MAC
@@ -138,7 +138,7 @@ void setup() {
   clientName += macToStr(mac);
   clientName += "-";
   clientName += String(micros() & 0xff, 16);
-  myMqtt.setClientId((char*) clientName.c_str()); // .c_str() retorna um ponteiro para a string terminada com \0 como no C
+  myMqtt.setClientId((char*) clientName.c_str()); // .c_str() retorna um ponteiro para a string terminada com \0 (como na linguagem C)
 
   // Imprime o nome dado ao cliente
   Serial.print("MQTT client id:");
@@ -154,17 +154,17 @@ void setup() {
   myMqtt.setUserPwd(EIOTCLOUD_USERNAME, EIOTCLOUD_PASSWORD);
   myMqtt.connect();
 
-  delay(500); // para por 0.5 sec
+  delay(500); // Esperar 0.5 sec
 
-  // Imprime o id do modulo em utilização
+  // Imprime o id do módulo em utilização
   Serial.print("ModuleId: ");
   Serial.println(storage.moduleId);
 
 
-  // Se necessário cria um modulo
+  // Se necessário cria um módulo
   if (storage.moduleId == 0)
   {
-    //create module
+    //Criar módulo
     Serial.println("create module: /NewModule");
     storage.moduleId = myMqtt.NewModule();
 
@@ -175,11 +175,11 @@ void setup() {
         delay(100);
     }
 
-    // Definir tipo de modulo
+    // Definir tipo de módulo
     Serial.println("Set module type");
     myMqtt.SetModuleType(storage.moduleId, "NEEC_IRRIGATOR");
 
-    // criar Sensor.Parameter1 - humidity treshold value
+    // Criar o Sensor.Parameter1 - limiar de humidade
     Serial.println("new parameter: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY_TRESHOLD);
     myMqtt.NewModuleParameter(storage.moduleId, PARAM_HUMIDITY_TRESHOLD);
     // Faz com que seja possivel alterar o valor a distacia
@@ -187,15 +187,15 @@ void setup() {
     myMqtt.SetParameterIsCommand(storage.moduleId, PARAM_HUMIDITY_TRESHOLD, true);
 
 
-    // criar Sensor.Parameter2
-    // Sensor.Parameter2 - manual/auto mode 0 - manual, 1 - auto mode
+    // Criar o Sensor.Parameter2
+    // Sensor.Parameter2 - modo manual/auto  0 - manual, 1 - automático
     Serial.println("new parameter: /" + String(storage.moduleId) + "/" + PARAM_MANUAL_AUTO_MODE);
     myMqtt.NewModuleParameter(storage.moduleId, PARAM_MANUAL_AUTO_MODE);
     Serial.println("set isCommand: /" + String(storage.moduleId) + "/" + PARAM_MANUAL_AUTO_MODE);
     myMqtt.SetParameterIsCommand(storage.moduleId, PARAM_MANUAL_AUTO_MODE, true);
 
 
-    // criar Sensor.Parameter3
+    // Criar o Sensor.Parameter3
     // Sensor.Parameter3 - pump on/ pump off
     Serial.println("new parameter: /" + String(storage.moduleId) + "/" + PARAM_PUMP_ON);
     myMqtt.NewModuleParameter(storage.moduleId, PARAM_PUMP_ON);
@@ -203,8 +203,8 @@ void setup() {
     myMqtt.SetParameterIsCommand(storage.moduleId, PARAM_PUMP_ON, true);
 
 
-    // criar Sensor.Parameter4
-    // Sensor.Parameter4 - current soil humidity
+    // Criar o Sensor.Parameter4
+    // Sensor.Parameter4 - Humidade do solo atual
     Serial.println("new parameter: /" + String(storage.moduleId) + "/" + PARAM_HUMIDITY);
     myMqtt.NewModuleParameter(storage.moduleId, PARAM_HUMIDITY);
     // Definir descripção
@@ -224,7 +224,7 @@ void setup() {
   // É preciso subscrever aos topicos
   subscribe();
 
-  // Lê o primeiro valor a partir do pin analogico
+  // Lê o primeiro valor a partir do pino analógico
   lastAnalogReading = analogRead(PIN_HUM_ANALOG);
 
   // Define o modo automatico antigo
@@ -256,7 +256,7 @@ void loop() {
 
 
 
-  // Se o valor do modo atomatico mudar vamos atualizar-lo
+  // Se o valor do modo atomatico mudar vamos atualizá-lo
   if (autoModeOld != autoMode)
   {
     autoModeOld = autoMode;
@@ -275,7 +275,7 @@ void loop() {
     Serial.println(valueStr);
   }
 
-  // post treshold changes
+  // Mudanças pós limiar
   if (soilHumidityThreshold != soilHumidityThresholdOld)
   {
     soilHumidityThresholdOld = soilHumidityThreshold;
