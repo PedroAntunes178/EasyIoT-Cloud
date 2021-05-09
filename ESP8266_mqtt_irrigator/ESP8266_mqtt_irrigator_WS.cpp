@@ -9,8 +9,8 @@
 
 // O SSID é o nome da rede a que o vosso computador se vai conectar
 // A password é a da rede de internet a qual te estas a conectar
-#define AP_SSID     "NOS_Internet_B1D9"
-#define AP_PASSWORD "03217942"
+#define AP_SSID     "xxx"
+#define AP_PASSWORD "xxx"
 
 
 // Antes de se definir a password e o username é preciso criar conta em:
@@ -146,9 +146,7 @@ void setup() {
 
   // Definir as funções que vão ocorrer em resposta a certos eventos
   myMqtt.onConnected(myConnectedCb);
-  myMqtt.onDisconnected(myDisconnectedCb);
-  myMqtt.onPublished(myPublishedCb);
-  myMqtt.onData(myDataCb);
+  //...
 
   // Conectar à cloud por MQTT
   myMqtt.setUserPwd(EIOTCLOUD_USERNAME, EIOTCLOUD_PASSWORD);
@@ -402,22 +400,8 @@ void loop() {
 */
 void loadConfig() {
   // Precisamos de verificar se a versão na memoria corresponde à nossa. É uma maneira fácil de verificar se esta foi corrompida ou não
-  bool flag = true;
-  for(int i = 0; i < sizeof(storage.version); i++){
-#if DEBUG
-    Serial.print("Loading Config: ");
-    Serial.println(i);
-#endif
-    if (EEPROM.read(CONFIG_START + i) != CONFIG_VERSION[i]) flag = false;
-  }
-  // Se as versões não corresponderem vão ser usados os valores de default
-  if(flag==true){
-#if DEBUG
-    Serial.print("Carregando configurações...");
-#endif
-    for (unsigned int t = 0; t < sizeof(storage); t++)
-      *((char*)&storage + t) = EEPROM.read(CONFIG_START + t);
-  }
+  //...
+  
 }
 
 /*
@@ -450,19 +434,7 @@ String macToStr(const uint8_t* mac)
 */
 boolean IsTimeout()
 {
-  unsigned long now = millis();
-  if (startTime <= now)
-  {
-    if ( (unsigned long)(now - startTime )  < MS_IN_SEC )
-      return false;
-  }
-  else
-  {
-    if ( (unsigned long)(startTime - now) < MS_IN_SEC )
-      return false;
-  }
-
-  return true;
+  //...
 }
 
 
@@ -488,10 +460,7 @@ void subscribe()
    A função myConnectedCb vai executar quando o nodeMCU establecer a conexão por MQTT à cloud
 */
 void myConnectedCb() {
-#ifdef DEBUG
-  Serial.println("Connected to MQTT server");
-#endif
-  subscribe();
+  //...
 }
 
 /*
@@ -543,10 +512,7 @@ void myDataCb(String& topic, String& data) {
   }
   else if (topic == String("/" + String(storage.moduleId) + "/" + PARAM_PUMP_ON)) // Executa se a mensagem que receber for relativa a ligar ou desligar a bomba de aguá
   {
-    if (data == String("1"))
-      state = s_irrigation_start;
-    else
-      state = s_irrigation_stop;
+	//...
 #ifdef DEBUG
     Serial.println("Pump");
     Serial.println(data);
