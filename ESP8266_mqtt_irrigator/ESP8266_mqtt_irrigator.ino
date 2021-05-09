@@ -268,14 +268,16 @@ void loop() {
 
     topic  = "/" + String(storage.moduleId) + "/" + PARAM_MANUAL_AUTO_MODE;
     result = myMqtt.publish(topic, valueStr, 0, 1);  // Vamos dar publish do novo valor na cloud
-
+    
+#ifdef DEBUG
     Serial.print("Publish topic: ");
     Serial.print(topic);
     Serial.print(" value: ");
     Serial.println(valueStr);
+#endif
   }
 
-  // Mudanças pós limiar
+  // Se o valor de limiar mudar vamos atualizá-lo
   if (soilHumidityThreshold != soilHumidityThresholdOld)
   {
     soilHumidityThresholdOld = soilHumidityThreshold;
@@ -283,56 +285,62 @@ void loop() {
 
     topic  = "/" + String(storage.moduleId) + "/" + PARAM_HUMIDITY_TRESHOLD;
     result = myMqtt.publish(topic, valueStr, 0, 1);
-
+    
+#ifdef DEBUG
     Serial.print("Publish topic: ");
     Serial.print(topic);
     Serial.print(" value: ");
     Serial.println(valueStr);
+#endif
   }
 
-  if (IsTimeout())
+  if (IsTimeout()) // Executa a cada segundo
   {
     startTime = millis();
-    // process every second
+    
     int aireading = analogRead(PIN_HUM_ANALOG);
-
+    
+    // filtro s, serve para que pequenas influências no sensor de humidade não afetem muito os resultados
+    lastAnalogReading += (aireading - lastAnalogReading) / 10;
+#ifdef DEBUG
     Serial.print("Analog value: ");
     Serial.print(aireading);
     Serial.print(" ");
-    // filter s
-    lastAnalogReading += (aireading - lastAnalogReading) / 10;
     Serial.print(lastAnalogReading);
+#endif
 
-    // calculate soil humidity in %
+    // Calcula a humidade do solo em %
     int newSoilHum = map(lastAnalogReading, MIN_ANALOG_VAL, MAX_ANALOG_VAL, 100, 0);
+#ifdef DEBUG
     Serial.print(", Soil hum %:");
     Serial.println(newSoilHum);
+#endif
 
-    // limit to 0-100%
+    // limita entre 0-100%
     if (newSoilHum < 0)
       newSoilHum = 0;
-
     if (newSoilHum > 100)
       newSoilHum = 100;
 
-    // report soil humidity if changed
+    // Se o valor da humidade do solo mudar enviamos o novo valor para a cloud
     if (soilHum != newSoilHum)
     {
       soilHum = newSoilHum;
-      //esp.send(msgHum.set(soilHum));
 
       valueStr = String(soilHum);
       topic  = "/" + String(storage.moduleId) + "/" + PARAM_HUMIDITY;
       result = myMqtt.publish(topic, valueStr, 0, 1);
-
-      Serial.print("Publish topic: ");
-      Serial.print(topic);
-      Serial.print(" value: ");
-      Serial.println(valueStr);
+    
+#ifdef DEBUG
+    Serial.print("Publish topic: ");
+    Serial.print(topic);
+    Serial.print(" value: ");
+    Serial.println(valueStr);
+#endif
     }
 
 
-    // irrigator state machine
+    // maquina de estados para a irrigação
     switch (state)
     {
       case s_idle:
@@ -345,33 +353,43 @@ void loop() {
             state = s_irrigation_start;
         }
         break;
+        
       case s_irrigation_start:
         irrigatorCounter = 0;
         digitalWrite(PIN_PUMP, HIGH);
-        //esp.send(msgMotorPump.set((uint8_t)1));
         valueStr = String(1);
         topic  = "/" + String(storage.moduleId) + "/" + PARAM_PUMP_ON;
         result = myMqtt.publish(topic, valueStr, 0, 1);
-
+        
+#ifdef DEBUG
         Serial.print("Publish topic: ");
         Serial.print(topic);
         Serial.print(" value: ");
         Serial.println(valueStr);
+#endif
 
         state = s_irrigation;
         break;
+        
       case s_irrigation:
         if (irrigatorCounter++ > IRRIGATION_TIME)
           state = s_irrigation_stop;
         break;
+        
       case s_irrigation_stop:
         irrigatorCounter = 0;
         state = s_idle;
-        //esp.send(msgMotorPump.set((uint8_t)0));
         valueStr = String(0);
         topic  = "/" + String(storage.moduleId) + "/" + PARAM_PUMP_ON;
         result = myMqtt.publish(topic, valueStr, 0, 1);
 
+#ifdef DEBUG
+        Serial.print("Publish topic: ");
+        Serial.print(topic);
+        Serial.print(" value: ");
+        Serial.println(valueStr);
+#endif
+    
         digitalWrite(PIN_PUMP, LOW);
         break;
     }
@@ -394,6 +412,9 @@ void loadConfig() {
   }
   // Se as versões não corresponderem vão ser usados os valores de default
   if(flag==true)
+#if DEBUG
+    Serial.print("Carregando configurações...");
+#endif
     for (unsigned int t = 0; t < sizeof(storage); t++)
       *((char*)&storage + t) = EEPROM.read(CONFIG_START + t);
 }
@@ -505,15 +526,19 @@ void myDataCb(String& topic, String& data) {
   if (topic == String("/" + String(storage.moduleId) + "/" + PARAM_HUMIDITY_TRESHOLD)) // Executa se a mensagem que receber for relativa a uma variação da humidade limiar do solo
   {
     soilHumidityThreshold = data.toInt();
+#ifdef DEBUG
     Serial.println("soilHumidityThreshold");
     Serial.println(data);
+#endif
   }
 
   else if (topic == String("/" + String(storage.moduleId) + "/" + PARAM_MANUAL_AUTO_MODE)) // Executa se a mensagem que receber for relativa a ligar ou desligar o modo automatico
   {
     autoMode = (data == String("1"));
+#ifdef DEBUG
     Serial.println("Auto mode");
     Serial.println(data);
+#endif
   }
   else if (topic == String("/" + String(storage.moduleId) + "/" + PARAM_PUMP_ON)) // Executa se a mensagem que receber for relativa a ligar ou desligar a bomba de aguá
   {
@@ -521,7 +546,9 @@ void myDataCb(String& topic, String& data) {
       state = s_irrigation_start;
     else
       state = s_irrigation_stop;
+#ifdef DEBUG
     Serial.println("Pump");
     Serial.println(data);
+#endif
   }
 }
