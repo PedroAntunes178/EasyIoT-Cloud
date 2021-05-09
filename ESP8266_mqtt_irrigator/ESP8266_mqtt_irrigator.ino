@@ -232,6 +232,7 @@ void setup() {
 }
 
 void loop() {
+  // Verifica se estamos conectados ao Wifi
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
 #ifdef DEBUG
@@ -239,9 +240,9 @@ void loop() {
 #endif
   }
 
+  // Verifica se estamos a carregar no botão de flash, que está a 1 se não carregarmos
   int in = digitalRead(PIN_BUTTON);
 
-  //Serial.println(in);
   if (in == 0)
   {
     while (digitalRead(PIN_BUTTON) == 0)
@@ -255,7 +256,7 @@ void loop() {
 
 
 
-  // post auto mode changes
+  // Se o valor do modo atomatico mudar vamos atualizar-lo
   if (autoModeOld != autoMode)
   {
     autoModeOld = autoMode;
@@ -266,7 +267,7 @@ void loop() {
       valueStr = String("0");
 
     topic  = "/" + String(storage.moduleId) + "/" + PARAM_MANUAL_AUTO_MODE;
-    result = myMqtt.publish(topic, valueStr, 0, 1);
+    result = myMqtt.publish(topic, valueStr, 0, 1);  // Vamos dar publish do novo valor na cloud
 
     Serial.print("Publish topic: ");
     Serial.print(topic);
@@ -444,7 +445,7 @@ boolean IsTimeout()
 
 
 /*
-   A função subscribe vai ...
+   A função subscribe vai fazer com que o nodeMCU fique à escuta de certos topicos na conexao atraves do protocolo MQTT.
 */
 void subscribe()
 {
